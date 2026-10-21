@@ -140,12 +140,22 @@ async function capture(page, file) {
     });
     console.log('    badge =', summary.badge);
     summary.qs.forEach((q) => console.log('    • ' + q.text + '  [' + q.opts.join('') + ']'));
-    check('phát hiện 2 câu hỏi', summary.count === 2, 'got ' + summary.count);
-    check('badge "2 câu"', /2 câu/.test(summary.badge), summary.badge);
+    check('phát hiện 5 câu hỏi', summary.count === 5, 'got ' + summary.count);
+    check('badge "5 câu"', /5 câu/.test(summary.badge), summary.badge);
     check('nhãn A/B/C/D đúng', summary.qs[0] && summary.qs[0].opts.join('') === 'ABCD',
       summary.qs[0] ? summary.qs[0].opts.join(',') : 'n/a');
     check('câu 2 nhận dạng bằng mẫu chữ', summary.qs[1] && /electron/.test(summary.qs[1].text),
       summary.qs[1] ? summary.qs[1].text : 'n/a');
+    check('câu 3 nhận dạng <ol type="A">', summary.qs[2] && /Hành tinh Đỏ/.test(summary.qs[2].text),
+      summary.qs[2] ? summary.qs[2].text : 'n/a');
+    check('câu 3 có 4 đáp án A-D', summary.qs[2] && summary.qs[2].opts.join('') === 'ABCD',
+      summary.qs[2] ? summary.qs[2].opts.join(',') : 'n/a');
+    check('câu 4 nhận dạng khoá trong thẻ con', summary.qs[3] && /Pháp/.test(summary.qs[3].text),
+      summary.qs[3] ? summary.qs[3].text : 'n/a');
+    check('câu 4 có 3 đáp án A-C', summary.qs[3] && summary.qs[3].opts.join('') === 'ABC',
+      summary.qs[3] ? summary.qs[3].opts.join(',') : 'n/a');
+    check('câu 5 nhận dạng câu đã lộ đáp án', summary.qs[4] && /2 \+ 2/.test(summary.qs[4].text),
+      summary.qs[4] ? summary.qs[4].text : 'n/a');
 
     console.log('\n[4] Panel không che vùng đọc');
     const layout = await page.evaluate(() => {
@@ -206,7 +216,7 @@ async function capture(page, file) {
       return { n: sr.querySelectorAll('.q').length, badge: sr.querySelector('.brand-count').textContent.trim() };
     });
     console.log('    badge =', afterAdd.badge);
-    check('số câu tăng lên 3', afterAdd.n === 3, 'got ' + afterAdd.n);
+    check('số câu tăng lên 6', afterAdd.n === 6, 'got ' + afterAdd.n);
 
     console.log('\n[7] Đáp án đã chọn được đánh dấu');
     await page.click('#q-radio input[value="b"]');
@@ -216,6 +226,21 @@ async function capture(page, file) {
       return Array.from(sr.querySelector('.q').querySelectorAll('.opt')).map((o) => o.getAttribute('data-selected'));
     });
     check('đáp án B được đánh dấu', sel[1] === 'true', JSON.stringify(sel));
+
+    console.log('\n[7b] Đáp án do trang tiết lộ được đánh dấu ★');
+    const revealed = await page.evaluate(() => {
+      const sr = document.getElementById('qh-panel-host').shadowRoot;
+      const items = Array.from(sr.querySelectorAll('.opt[data-revealed="true"]'));
+      return {
+        count: items.length,
+        key: items[0] ? items[0].getAttribute('data-key') : null,
+        label: items[0] ? items[0].textContent.trim() : null
+      };
+    });
+    console.log('    ' + JSON.stringify(revealed));
+    check('có đúng 1 đáp án được tiết lộ', revealed.count === 1, 'got ' + revealed.count);
+    check('là đáp án B', revealed.key === 'B', String(revealed.key));
+    check('có nhãn "đáp án đúng"', /đáp án đúng/.test(revealed.label || ''), revealed.label);
 
     console.log('\n[8] Đồng bộ cài đặt giữa các tab');
     await optPage.evaluate(() => new Promise((resolve) => {
@@ -230,7 +255,7 @@ async function capture(page, file) {
       dockHidden: document.getElementById('qh-panel-host').shadowRoot.querySelector('.dock').style.display === 'none'
     }));
     console.log('    ' + JSON.stringify(inlineState));
-    check('tab trang áp dụng được cài đặt mới', inlineState.cards >= 2 && inlineState.dockHidden,
+    check('tab trang áp dụng được cài đặt mới', inlineState.cards >= 5 && inlineState.dockHidden,
       JSON.stringify(inlineState));
 
     console.log('\n[9] Điều khiển qua service worker (bấm icon extension)');

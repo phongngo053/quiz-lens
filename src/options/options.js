@@ -24,6 +24,7 @@
     maxOptionLength: 600,
     maxQuestionLength: 1200,
     enableTextFallback: true,
+    detectRevealed: true,
     blockedHosts: [],
     customProfiles: [],
     aiEnabled: false,
@@ -48,6 +49,7 @@
     stripKeyPrefix: 'checkbox',
     includeHidden: 'checkbox',
     enableTextFallback: 'checkbox',
+    detectRevealed: 'checkbox',
     minOptions: 'number',
     aiEnabled: 'checkbox',
     aiBaseUrl: 'text',
@@ -76,6 +78,7 @@
       else input.value = s[key];
     });
     el('blockedHosts').value = (s.blockedHosts || []).join('\n');
+    el('aiFallbackModels').value = (s.aiFallbackModels || DEFAULTS.aiFallbackModels || []).join('\n');
     updateWidthLabel();
     setModelValue(s.aiModel || '');
   }
@@ -92,6 +95,10 @@
       else s[key] = input.value;
     });
     s.blockedHosts = el('blockedHosts').value
+      .split('\n')
+      .map((x) => x.trim())
+      .filter(Boolean);
+    s.aiFallbackModels = el('aiFallbackModels').value
       .split('\n')
       .map((x) => x.trim())
       .filter(Boolean);

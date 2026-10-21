@@ -285,10 +285,11 @@
           ? `<span class="opt-key">${esc(o.key)}</span>`
           : '';
         const mark = o.selected ? `<span class="opt-mark">✓ đã chọn</span>` : '';
+        const reveal = o.revealed ? `<span class="opt-reveal">★ đáp án đúng</span>` : '';
         const pick = o.element
           ? `<button class="opt-pick js-pick" data-qid="${esc(q.id)}" data-key="${esc(o.key)}" title="Chọn đáp án này trong trang">chọn</button>`
           : '';
-        return `<li class="opt" data-selected="${o.selected ? 'true' : 'false'}" data-key="${esc(o.key)}">${key}<span class="opt-text">${esc(o.text)}</span>${mark}${pick}</li>`;
+        return `<li class="opt" data-selected="${o.selected ? 'true' : 'false'}" data-revealed="${o.revealed ? 'true' : 'false'}" data-key="${esc(o.key)}">${key}<span class="opt-text">${esc(o.text)}</span>${mark}${reveal}${pick}</li>`;
       }).join('');
 
       const aiBlock = aiOn ? `

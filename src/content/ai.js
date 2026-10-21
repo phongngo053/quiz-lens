@@ -79,6 +79,35 @@
     return null;
   }
 
+  /**
+   * Chuỗi model dự phòng.
+   *
+   * Bối cầu chung của các gateway (new-api, one-api…) là mỗi key chỉ được
+   * cấp quyền cho một số model nhất định. Nếu model đang chọn không thuộc
+   * nhóm được cấp, API trả lỗi kiểu "No active credentials" hoặc
+   * "channel verification". Ta tự thử lần lượt các model thay thế.
+   */
+  const FALLBACK_MODELS = [
+    'gemma4',
+    'ollama/gpt-oss:120b',
+    'gpt-5.6-luna',
+    'ollama/beam:cloud'
+  ];
+
+  /** Lỗi nào đáng thử model khác? */
+  function isModelLevelError(message) {
+    if (!message) return false;
+    const m = String(message).toLowerCase();
+    return m.includes('no active credentials') ||
+           m.includes('channel verification') ||
+           m.includes('request illegal') ||
+           m.includes('no such model') ||
+           m.includes('does not exist') ||
+           m.includes('not in the free plan') ||
+           m.includes('model_not_found') ||
+           m.includes('not found');
+  }
+
   const AI = {
     /** Lấy danh sách model khả dụng. */
     listModels: function () {
@@ -116,35 +145,77 @@
 
     /**
      * Gợi ý đáp án cho một câu hỏi.
+     *
+     * Nếu model chính bị lỗi ở tầng model (key chưa được cấp quyền cho
+     * model đó), tự thử các model dự phòng.
+     *
      * @returns {Promise<{answer:string, confidence:number, reason:string, raw:string}>}
      */
     suggest: async function (question, options, opts) {
       const prompt = buildPrompt(question, options || []);
-      const raw = await AI.complete(prompt, opts);
-      const text = (raw && raw.text) || '';
-      const parsed = parseJsonLoose(text);
+      const settings = opts || {};
 
-      if (!parsed || !parsed.answer) {
-        throw new Error('Không đọc được kết quả từ model');
+      const primary = settings.model || '';
+      const tried = [];
+      let lastError = null;
+
+      // Danh sách model sẽ thử lần lượt
+      const chain = [];
+      if (primary) chain.push(primary);
+      (settings.fallbackModels || FALLBACK_MODELS).forEach((m) => {
+        if (m && chain.indexOf(m) === -1) chain.push(m);
+      });
+      if (!chain.length) chain.push('');   // để server tự chọn
+
+      for (const model of chain) {
+        tried.push(model || '(mặc định)');
+        let raw;
+        try {
+          raw = await AI.complete(prompt, Object.assign({}, settings, { model }));
+        } catch (e) {
+          lastError = e;
+          // Lỗi cấp quyền -> thử model khác
+          if (isModelLevelError(e.message)) continue;
+          // Lỗi mạng / xác thực -> dừng, không đáng thử tiếp
+          throw e;
+        }
+
+        const text = (raw && raw.text) || '';
+        const parsed = parseJsonLoose(text);
+        if (!parsed || !parsed.answer) {
+          lastError = new Error('Không đọc được kết quả từ model');
+          continue;
+        }
+
+        // Chuẩn hoá ký hiệu đáp án
+        const answer = String(parsed.answer).trim().toUpperCase().replace(/[^A-H]/g, '').charAt(0);
+        let confidence = parseFloat(parsed.confidence);
+        if (!isFinite(confidence)) confidence = 0.6;
+        if (confidence > 1) confidence = confidence / 100;
+
+        return {
+          answer: answer,
+          confidence: Math.max(0, Math.min(1, confidence)),
+          reason: String(parsed.reason || '').trim(),
+          raw: text.slice(0, 600),
+          model: (raw && raw.model) || model || '',
+          triedModels: tried
+        };
       }
 
-      // Chuẩn hoá ký hiệu đáp án
-      const answer = String(parsed.answer).trim().toUpperCase().replace(/[^A-H]/g, '').charAt(0);
-      let confidence = parseFloat(parsed.confidence);
-      if (!isFinite(confidence)) confidence = 0.6;
-      if (confidence > 1) confidence = confidence / 100;
-
-      return {
-        answer: answer,
-        confidence: Math.max(0, Math.min(1, confidence)),
-        reason: String(parsed.reason || '').trim(),
-        raw: text.slice(0, 600),
-        model: (raw && raw.model) || (opts && opts.model) || ''
-      };
+      // Hết chuỗi dự phòng -> báo lỗi có thông tin hữu ích
+      const msg = lastError ? lastError.message : 'Không có model nào trả lời được';
+      const err = new Error(
+        'Không gọi được AI (' + msg + '). Đã thử: ' + tried.join(', ')
+      );
+      err.triedModels = tried;
+      throw err;
     },
 
     parseJsonLoose: parseJsonLoose,
-    buildPrompt: buildPrompt
+    buildPrompt: buildPrompt,
+    isModelLevelError: isModelLevelError,
+    FALLBACK_MODELS: FALLBACK_MODELS
   };
 
   QH.ai = AI;
