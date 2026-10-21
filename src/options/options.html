@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quiz Lens — Cài đặt</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <div class="head-icon"></div>
+      <div>
+        <h1>Quiz Lens</h1>
+        <p class="sub">Bảng đáp án cạnh trang — chạy hoàn toàn cục bộ, không gửi dữ liệu ra ngoài.</p>
+      </div>
+      <div class="head-save" id="saveState"></div>
+    </header>
+
+    <section class="card">
+      <h2>Hiển thị</h2>
+
+      <label class="row">
+        <input type="checkbox" id="enabled">
+        <span class="row-main">
+          <span class="row-title">Bật extension</span>
+          <span class="row-desc">Tắt để ẩn hoàn toàn panel trên mọi trang.</span>
+        </span>
+      </label>
+
+      <div class="row">
+        <span class="row-main">
+          <span class="row-title">Kiểu hiển thị</span>
+          <span class="row-desc">Ghim bên cạnh, chèn cạnh câu hỏi, hoặc cả hai.</span>
+        </span>
+        <select id="mode">
+          <option value="dock">Ghim bên (dock)</option>
+          <option value="inline">Chèn cạnh câu hỏi (inline)</option>
+          <option value="both">Cả hai</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="row-main">
+          <span class="row-title">Vị trí ghim</span>
+          <span class="row-desc">Panel dọc theo mép phải hoặc mép trái của cửa sổ trình duyệt.</span>
+        </span>
+        <select id="side">
+          <option value="right">Mép phải</option>
+          <option value="left">Mép trái</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="row-main">
+          <span class="row-title">Giao diện</span>
+          <span class="row-desc">“Tự động” bám theo cài đặt hệ điều hành.</span>
+        </span>
+        <select id="theme">
+          <option value="auto">Tự động</option>
+          <option value="dark">Tối</option>
+          <option value="light">Sáng</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <span class="row-main">
+          <span class="row-title">Bề rộng panel</span>
+          <span class="row-desc"><span id="widthValue">340</span> px</span>
+        </span>
+        <input type="range" id="width" min="260" max="560" step="10" value="340">
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Không che vùng đọc</h2>
+
+      <label class="row">
+        <input type="checkbox" id="pushContent">
+        <span class="row-main">
+          <span class="row-title">Đẩy nội dung trang sang một bên</span>
+          <span class="row-desc">
+            Khi bật, trang web được thu hẹp lại để panel không đè lên nội dung.
+            Tắt nếu trang của bạn đã có sẵn layout 2 cột.
+          </span>
+        </span>
+      </label>
+
+      <label class="row">
+        <input type="checkbox" id="autoCollapse">
+        <span class="row-main">
+          <span class="row-title">Tự thu gọn khi không có câu hỏi</span>
+          <span class="row-desc">Giữ thanh nhỏ gọn ở mép màn hình thay vì chiếm diện tích.</span>
+        </span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Nhận dạng đáp án</h2>
+
+      <label class="row">
+        <input type="checkbox" id="showKeyBadge">
+        <span class="row-main">
+          <span class="row-title">Hiện nhãn A / B / C / D</span>
+          <span class="row-desc">Hiển thị ký hiệu đáp án bên cạnh nội dung lựa chọn.</span>
+        </span>
+      </label>
+
+      <label class="row">
+        <input type="checkbox" id="stripKeyPrefix">
+        <span class="row-main">
+          <span class="row-title">Bỏ tiền tố “A.” trong nội dung</span>
+          <span class="row-desc">Loại bỏ ký hiệu trùng lặp khi nhãn đã hiển thị riêng.</span>
+        </span>
+      </label>
+
+      <label class="row">
+        <input type="checkbox" id="includeHidden">
+        <span class="row-main">
+          <span class="row-title">Quét cả phần tử đang ẩn</span>
+          <span class="row-desc">Bật khi đáp án nằm trong tab/accordion chưa mở. Tắt để nhanh hơn.</span>
+        </span>
+      </label>
+
+      <label class="row">
+        <input type="checkbox" id="enableTextFallback">
+        <span class="row-main">
+          <span class="row-title">Nhận dạng theo văn bản thuần</span>
+          <span class="row-desc">Dò các mẫu “A. … B. … C. …” khi trang không dùng ô radio/checkbox.</span>
+        </span>
+      </label>
+
+      <div class="row">
+        <span class="row-main">
+          <span class="row-title">Số đáp án tối thiểu</span>
+          <span class="row-desc">Bỏ qua nhóm nhỏ hơn mức này (mặc định 2).</span>
+        </span>
+        <input type="number" id="minOptions" min="2" max="8" step="1" value="2">
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Website không chạy</h2>
+      <p class="hint">
+        Mỗi dòng là một domain, ví dụ <code>docs.google.com</code> hoặc <code>*.edu.vn</code>
+        để bỏ qua trên những trang đó.
+      </p>
+      <textarea id="blockedHosts" rows="4" spellcheck="false" placeholder="docs.google.com&#10;*.edu.vn"></textarea>
+    </section>
+
+    <section class="card">
+      <h2>Trợ lý AI</h2>
+
+      <label class="row">
+        <input type="checkbox" id="aiEnabled">
+        <span class="row-main">
+          <span class="row-title">Bật gợi ý đáp án bằng AI</span>
+          <span class="row-desc">
+            Nút “Gợi ý AI” sẽ xuất hiện cạnh mỗi câu trong panel.
+            Câu hỏi và các lựa chọn được gửi tới API của bạn để suy luận đáp án.
+          </span>
+        </span>
+      </label>
+
+      <div class="row">
+        <span class="row-main">
+          <span class="row-title">Địa chỉ API</span>
+          <span class="row-desc">Base URL tương thích OpenAI. <code>/v1</code> được thêm tự động nếu thiếu.</span>
+        </span>
+        <input type="text" id="aiBaseUrl" class="wide" spellcheck="false"
+               placeholder="https://your-gateway.example/v1">
+      </div>
+
+      <div class="row">
+        <span class="row-main">
+          <span class="row-title">Khoá API</span>
+          <span class="row-desc">
+            Lưu cục bộ trong <code>chrome.storage.local</code> của trình duyệt này.
+            <strong>Không</strong> nằm trong cài đặt đồng bộ và <strong>không</strong> được ghi vào mã nguồn.
+          </span>
+        </span>
+        <div class="key-wrap">
+          <input type="password" id="aiApiKey" class="wide" spellcheck="false"
+                 autocomplete="off" placeholder="sk-...">
+          <button id="toggleKey" class="btn tiny" type="button">Hiện</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="row-main">
+          <span class="row-title">Model</span>
+          <span class="row-desc" id="aiModelDesc">
+            Chọn model dùng để gợi ý. Danh sách được tải từ API.
+          </span>
+        </span>
+        <div class="model-wrap">
+          <input type="search" id="aiModelSearch" class="wide" placeholder="Tìm model…" autocomplete="off">
+          <select id="aiModel" size="7">
+            <option value="">(mặc định của server)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <span class="row-main">
+          <span class="row-title">Kiểm tra kết nối</span>
+          <span class="row-desc" id="aiTestResult">Chưa kiểm tra.</span>
+        </span>
+        <button id="testAi" class="btn ghost">Kiểm tra &amp; tải model</button>
+      </div>
+
+      <label class="row">
+        <input type="checkbox" id="aiAuto">
+        <span class="row-main">
+          <span class="row-title">Tự động gợi ý mọi câu</span>
+          <span class="row-desc">
+            Bật sẽ gọi API cho mỗi câu ngay khi phát hiện — tốn nhiều hạn mức hơn.
+            Nên để tắt và bấm thủ công khi cần.
+          </span>
+        </span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Không chặn khi đang gõ</h2>
+
+      <label class="row">
+        <input type="checkbox" id="autoCollapseOnFocus">
+        <span class="row-main">
+          <span class="row-title">Tự thu gọn &amp; làm mờ khi đang nhập liệu</span>
+          <span class="row-desc">
+            Khi bạn đang gõ vào một ô trên trang, panel sẽ mờ đi, không bắt chuột
+            và tự thu gọn — để không che hay chặn thao tác gõ từ.
+          </span>
+        </span>
+      </label>
+
+      <label class="row">
+        <input type="checkbox" id="deepSearch">
+        <span class="row-main">
+          <span class="row-title">Quét xuyên Shadow DOM</span>
+          <span class="row-desc">
+            Bắt nội dung nằm trong web component. Tắt nếu trang quá nặng.
+          </span>
+        </span>
+      </label>
+
+      <label class="row">
+        <input type="checkbox" id="manualScan">
+        <span class="row-main">
+          <span class="row-title">Cho phép quét vùng đã chọn</span>
+          <span class="row-desc">
+            Hiện nút bôi đen trong panel: bôi đen khối câu hỏi rồi bấm nút để quét thủ công.
+            Dùng khi trang không dùng ô radio/checkbox.
+          </span>
+        </span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Kiểm thử nhanh</h2>
+      <ol class="steps">
+        <li>Mở <a href="test-fixture.html" target="_blank">trang thử nghiệm mẫu</a> đi kèm extension.</li>
+        <li>Panel phải hiện 2 câu hỏi (một câu dùng radio, một câu dùng mẫu chữ A./B./C.).</li>
+        <li>Bấm nút <strong>Thêm câu hỏi</strong> để kiểm tra cập nhật tự động (SPA).</li>
+        <li>Bấm <strong>Đổi kiểu hiển thị</strong> để kiểm tra chuyển giữa dock và inline.</li>
+        <li>Dùng phím <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>Q</kbd> hoặc phím tắt tuỳ biến để thu gọn / mở rộng.</li>
+      </ol>
+    </section>
+
+    <footer class="foot">
+      <button id="reset" class="btn ghost">Khôi phục mặc định</button>
+      <button id="save" class="btn primary">Lưu cài đặt</button>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

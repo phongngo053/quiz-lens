@@ -1,0 +1,236 @@
+/* Quiz Lens — Trang cài đặt */
+
+:root {
+  --bg: #0f141c;
+  --card: #161d28;
+  --card-2: #1c2532;
+  --border: #273243;
+  --text: #e6edf6;
+  --muted: #93a3b8;
+  --accent: #4f9cf9;
+  --accent-soft: rgba(79, 156, 249, .14);
+  --ok: #35c98a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 32px 20px 60px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.wrap { max-width: 780px; margin: 0 auto; }
+
+/* ---------- HEADER ---------- */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.head-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #7c5cff);
+  box-shadow: 0 6px 18px rgba(79, 156, 249, .3);
+  flex: 0 0 auto;
+}
+.head h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
+.head .sub { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+.head-save {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ok);
+  opacity: 0;
+  transition: opacity .2s;
+}
+.head-save.show { opacity: 1; }
+
+/* ---------- CARD ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.hint { margin: -4px 0 10px; color: var(--muted); font-size: 12.5px; }
+.hint code {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+}
+
+/* ---------- ROW ---------- */
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+.row:last-child { border-bottom: none; padding-bottom: 2px; }
+.row:first-of-type { padding-top: 2px; }
+
+.row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row-title { font-size: 13.5px; font-weight: 550; }
+.row-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+.row input[type="checkbox"] {
+  appearance: none;
+  width: 17px; height: 17px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--card-2);
+  cursor: pointer;
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  position: relative;
+  transition: background .15s, border-color .15s;
+}
+.row input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.row input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px; top: 1.5px;
+  width: 4px; height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(42deg);
+}
+
+select, input[type="number"], textarea {
+  background: var(--card-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 6px 9px;
+  font-family: inherit;
+  font-size: 13px;
+  flex: 0 0 auto;
+  min-width: 150px;
+}
+select:focus, input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+input[type="number"] { width: 84px; min-width: 0; }
+
+input[type="range"] {
+  flex: 0 0 auto;
+  width: 170px;
+  accent-color: var(--accent);
+}
+
+/* ---------- Ô nhập rộng ---------- */
+input[type="text"].wide,
+input[type="password"].wide,
+input[type="search"].wide {
+  width: 260px;
+  min-width: 180px;
+}
+
+/* ---------- Khoá API ---------- */
+.key-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.key-wrap input { min-width: 210px; }
+
+/* ---------- Model ---------- */
+.model-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 auto;
+  width: 280px;
+}
+.model-wrap select {
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  padding: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.model-wrap select option { padding: 3px 5px; border-radius: 4px; }
+
+.btn.tiny {
+  padding: 5px 9px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: 6px;
+  flex: 0 0 auto;
+}
+
+#aiTestResult.ok { color: var(--ok); }
+#aiTestResult.err { color: #ff7b72; }
+
+/* ---------- STEPS ---------- */
+.steps { margin: 0; padding-left: 20px; color: var(--muted); font-size: 13px; }
+.steps li { margin-bottom: 6px; }
+.steps li:last-child { margin-bottom: 0; }
+.steps a { color: var(--accent); text-decoration: none; }
+.steps a:hover { text-decoration: underline; }
+.steps strong { color: var(--text); font-weight: 600; }
+kbd {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--text);
+}
+
+/* ---------- FOOTER ---------- */
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+.btn {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .05s;
+}
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: #3d8ce8; }
+.btn.ghost { background: transparent; color: var(--muted); }
+.btn.ghost:hover { background: var(--card); color: var(--text); }

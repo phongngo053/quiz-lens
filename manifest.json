@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "Quiz Lens — Bảng đáp án cạnh trang",
+  "short_name": "Quiz Lens",
+  "version": "1.0.0",
+  "description": "Đọc câu hỏi và các đáp án đang hiển thị trên trang, hiển thị bảng đối chiếu bên cạnh nội dung. Chạy hoàn toàn cục bộ, không cần backend.",
+  "minimum_chrome_version": "102",
+  "permissions": ["storage", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "action": {
+    "default_title": "Quiz Lens: bật/tắt bảng đáp án",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "src/content/config.js",
+        "src/content/detector.js",
+        "src/content/panel-styles.js",
+        "src/content/panel.js",
+        "src/content/inline.js",
+        "src/content/ai.js",
+        "src/content/index.js"
+      ],
+      "css": ["src/content/inline.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "commands": {
+    "toggle-panel": {
+      "suggested_key": { "default": "Alt+Shift+Q" },
+      "description": "Bật/tắt bảng đáp án Quiz Lens"
+    }
+  }
+}

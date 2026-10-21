@@ -1,0 +1,122 @@
+/* =============================================================
+ * Quiz Lens — CSS cho card INLINE (light DOM)
+ * ------------------------------------------------------------
+ * Dùng tiền tố .qh- để tránh xung đột với CSS của trang web.
+ * Card inline nằm trong light DOM nên dùng chung style với trang.
+ * ============================================================= */
+
+.qh-inline-card {
+  all: initial;
+  display: block;
+  box-sizing: border-box;
+  margin: 10px 0 16px;
+  padding: 10px 12px;
+  max-width: 760px;
+  border: 1px solid #2a3646;
+  border-left: 3px solid #4f9cf9;
+  border-radius: 8px;
+  background: #171e2a;
+  color: #e6edf6;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.qh-inline-card,
+.qh-inline-card * {
+  box-sizing: border-box;
+}
+
+.qh-inline-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.qh-inline-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: #4f9cf9;
+}
+
+.qh-inline-count {
+  font-size: 10.5px;
+  color: #93a3b8;
+}
+
+.qh-inline-q {
+  font-size: 12.5px;
+  color: #e6edf6;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.qh-inline-opts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qh-inline-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #1f2836;
+  font-size: 12px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.qh-inline-opt[data-selected="true"] {
+  background: rgba(53, 201, 138, .14);
+  outline: 1px solid #35c98a;
+}
+
+.qh-inline-key {
+  flex: 0 0 auto;
+  min-width: 15px;
+  font-weight: 700;
+  font-size: 11px;
+  color: #4f9cf9;
+}
+
+.qh-inline-opt[data-selected="true"] .qh-inline-key {
+  color: #35c98a;
+}
+
+.qh-inline-text {
+  flex: 1 1 auto;
+  white-space: pre-wrap;
+}
+
+.qh-inline-mark {
+  flex: 0 0 auto;
+  color: #35c98a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Áp dụng cho card inline khi nền trang sáng */
+@media (prefers-color-scheme: light) {
+  .qh-inline-card {
+    background: #f6f8fb;
+    border-color: #d8dee9;
+    border-left-color: #1668dc;
+    color: #16202e;
+  }
+  .qh-inline-title { color: #1668dc; }
+  .qh-inline-q { color: #16202e; }
+  .qh-inline-count { color: #5c6b80; }
+  .qh-inline-opt { background: #eceff5; }
+  .qh-inline-key { color: #1668dc; }
+}
