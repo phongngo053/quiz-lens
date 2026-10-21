@@ -201,6 +201,9 @@
 
   const KEY_RE = /^\s*[\(\[]?\s*([A-Ha-h])\s*[\)\]]?\s*(?:[\.\:]\s*|[\-–—]\s+|\s+)(?=\S)/;
 
+  /** Khoá đứng một mình trong thẻ con: "A.", "(B)", "C)" — không kèm nội dung. */
+  const KEY_ONLY_RE = /^\s*[\(\[]?\s*([A-Ha-h])\s*[\)\]]?\s*[\.\:]?\s*$/;
+
   function parseKeyPrefix(text) {
     if (!text) return null;
     const m = KEY_RE.exec(text);
@@ -208,6 +211,14 @@
     const key = m[1].toUpperCase();
     const rest = text.slice(m[0].length).trim();
     return { key, rest, matchedLength: m[0].length };
+  }
+
+  /** Chỉ nhận khoá, không nhận nội dung (dùng cho thẻ khoá riêng). */
+  function parseKeyOnly(text) {
+    if (!text) return null;
+    const m = KEY_ONLY_RE.exec(text);
+    if (!m) return null;
+    return { key: m[1].toUpperCase(), rest: '' };
   }
 
   /* ============================================================
@@ -349,7 +360,8 @@
           element: o.element
         })),
         source: 'input',
-        confidence: 0.9
+        confidence: 0.9,
+        scope: scope.scope
       });
     });
 
@@ -426,7 +438,8 @@
           element: o.element
         })),
         source: 'aria',
-        confidence: 0.85
+        confidence: 0.85,
+        scope: scope.scope
       });
     });
 
@@ -435,47 +448,90 @@
 
   /* ============================================================
    * CHIẾN LƯỢC B — NHÓM ĐÁP ÁN THEO MẪU "A. / B. / C."
+   * ------------------------------------------------------------
+   * Thu thập ứng viên từ nhiều dạng trình bày:
+   *   1. Text trực tiếp của node:            <p>A. Hà Nội</p>
+   *   2. Khoá nằm trong thẻ con đầu tiên:    <div><span>A.</span> Hà Nội</div>
+   *   3. <ol type="A"> / <ul type="A">:        <ol type="A"><li>Hà Nội</li></ol>
+   *   4. Ô bảng:                             <td>A. Hà Nội</td>
    * ============================================================ */
 
-  function detectFromKeyedText(root, settings) {
-    // Tìm các phần tử mà text bắt đầu bằng khoá A/B/C...
+  /** Text trực tiếp của node (không tính text của các thẻ con). */
+  function directText(node) {
+    return Array.from(node.childNodes)
+      .filter((n) => n.nodeType === 3)
+      .map((n) => n.nodeValue)
+      .join(' ')
+      .trim();
+  }
+
+  /**
+   * Thử lấy khoá từ thẻ con đầu tiên.
+   * Ví dụ: <div><span class="key">A.</span><span>Hà Nội</span></div>
+   */
+  function keyFromFirstChild(node) {
+    const child = node.children && node.children[0];
+    if (!child) return null;
+    if (!['SPAN', 'B', 'STRONG', 'I', 'EM', 'SUP', 'SMALL', 'MARK'].includes(child.tagName)) return null;
+
+    const childText = directText(child);
+    // Thẻ khoá chỉ chứa khoá ("A.") hoặc chứa cả nội dung ("A. Hà Nội")
+    const parsed = parseKeyOnly(childText) || parseKeyPrefix(childText);
+    if (!parsed) return null;
+
+    // Phần text còn lại của node sau khi bỏ thẻ khoá
+    let rest = '';
+    const clone = node.cloneNode(true);
+    const first = clone.children[0];
+    if (first) first.remove();
+    rest = normalize(clone.textContent || '');
+
+    return { key: parsed.key, rest: rest, child: child };
+  }
+
+  /** Gom ứng viên đáp án từ mọi dạng trình bày. */
+  function collectKeyedCandidates(root, settings) {
     const candidates = [];
     const deep = settings ? settings.deepSearch !== false : true;
     const roots = collectRoots(root, deep);
-
-    const acceptNode = (node) => {
-      if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE' || node.tagName === 'NOSCRIPT') {
-        return NodeFilter.FILTER_REJECT;
-      }
-      // Chỉ xét node có text trực tiếp (không phải wrapper)
-      const own = Array.from(node.childNodes)
-        .filter((n) => n.nodeType === 3)
-        .map((n) => n.nodeValue)
-        .join(' ')
-        .trim();
-      if (!own) return NodeFilter.FILTER_SKIP;
-      if (!parseKeyPrefix(own)) return NodeFilter.FILTER_SKIP;
-      // Bỏ qua node có phần tử con mang thẻ cấu trúc (tiêu đề, bảng)
-      for (const child of node.children) {
-        const tag = child.tagName;
-        if (['P', 'DIV', 'LI', 'TD', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'TABLE'].includes(tag)) {
-          return NodeFilter.FILTER_REJECT;
-        }
-      }
-      return NodeFilter.FILTER_ACCEPT;
-    };
+    const minOptions = settings.minOptions || 2;
 
     roots.forEach((r) => {
-      const walker = document.createTreeWalker(r, NodeFilter.SHOW_ELEMENT, { acceptNode });
+      /* --- 1 & 2: node có khoá trong text trực tiếp hoặc trong thẻ con đầu --- */
+      const walker = document.createTreeWalker(r, NodeFilter.SHOW_ELEMENT);
       let node;
       while ((node = walker.nextNode())) {
-        const own = Array.from(node.childNodes)
-          .filter((n) => n.nodeType === 3)
-          .map((n) => n.nodeValue)
-          .join(' ')
-          .trim();
+        if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'SVG', 'CANVAS', 'IFRAME', 'BUTTON'].includes(node.tagName)) continue;
+
+        const own = directText(node);
+
+        // 2) Khoá trong thẻ con đầu tiên — ưu tiên hơn vì giữ được cấu trúc
+        const fromChild = keyFromFirstChild(node);
+        if (fromChild && fromChild.rest) {
+          candidates.push({
+            element: node,
+            key: fromChild.key,
+            text: fromChild.rest.trim(),
+            raw: own
+          });
+          continue;
+        }
+
+        // 1) Khoá trong text trực tiếp
+        if (!own) continue;
         const parsed = parseKeyPrefix(own);
         if (!parsed) continue;
+
+        // Bỏ qua node bọc cả khối (có con mang thẻ cấu trúc) — tránh lấy trùm
+        let hasBlockChild = false;
+        for (const child of node.children) {
+          if (['P', 'DIV', 'LI', 'TD', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'TABLE', 'FORM'].includes(child.tagName)) {
+            hasBlockChild = true;
+            break;
+          }
+        }
+        if (hasBlockChild) continue;
+
         candidates.push({
           element: node,
           key: parsed.key,
@@ -483,33 +539,99 @@
           raw: own
         });
       }
+
+      /* --- 3: <ol type="A"> / <ul type="A"> --- */
+      const lists = Array.from(r.querySelectorAll('ol[type="A"], ul[type="A"], ol[type="a"], ul[type="a"]'));
+      lists.forEach((list) => {
+        const items = Array.from(list.children).filter((li) => li.tagName === 'LI');
+        if (items.length < minOptions) return;
+        items.forEach((li, idx) => {
+          const t = textOf(li);
+          if (!t) return;
+          candidates.push({
+            element: li,
+            key: String.fromCharCode(65 + idx),
+            text: t,
+            raw: t
+          });
+        });
+      });
+
+      /* --- 4: ô bảng chứa khoá --- */
+      const cells = Array.from(r.querySelectorAll('td, th'));
+      cells.forEach((cell) => {
+        const own = directText(cell);
+        const parsed = parseKeyPrefix(own);
+        if (!parsed) return;
+        candidates.push({
+          element: cell,
+          key: parsed.key,
+          text: parsed.rest.trim(),
+          raw: own
+        });
+      });
     });
 
-    if (candidates.length < (settings.minOptions || 2)) return [];
+    return candidates.filter((c) => c.text && c.text.length > 0);
+  }
 
-    // Gom nhóm: cùng cha (hoặc ông) chứa các khoá liên tiếp A,B,C...
-    const groups = new Map();
-    candidates.forEach((c) => {
-      const parent = c.element.parentElement;
-      if (!parent) return;
-      if (!groups.has(parent)) groups.set(parent, []);
-      groups.get(parent).push(c);
+  function detectFromKeyedText(root, settings) {
+    const candidates = collectKeyedCandidates(root, settings);
+    const minOptions = settings.minOptions || 2;
+    if (candidates.length < minOptions) return [];
+
+    /* ------------------------------------------------------------
+     * Gom nhóm.
+     *
+     * Mỗi ứng viên leo lên từ element của nó, tìm container gần nhất
+     * chứa tập khoá liên tiếp bắt đầu từ A. Cách này xử lý được các
+     * trường hợp ứng viên nằm rải rác ở nhiều cấp (ví dụ <li> trong <ol>,
+     * ô <td> trong <tr>) và tránh gom nhầm hai câu hỏi nằm cạnh nhau.
+     * ------------------------------------------------------------ */
+    const groups = new Map();   // container -> Map(key -> candidate)
+
+    const isContiguousFromA = (keys) => {
+      const uniq = Array.from(new Set(keys)).sort();
+      if (uniq.length < minOptions) return false;
+      const start = 'A'.charCodeAt(0);
+      return uniq.every((k, i) => k.charCodeAt(0) === start + i);
+    };
+
+    candidates.forEach((cand) => {
+      let node = cand.element;
+      let found = null;
+
+      for (let depth = 0; depth < 8 && node && node !== document.body; depth++) {
+        // Các ứng viên nằm trong subtree của node
+        const inScope = candidates.filter((c) => node.contains(c.element));
+        const byKey = new Map();
+        inScope.forEach((c) => {
+          if (!byKey.has(c.key)) byKey.set(c.key, c);
+        });
+
+        if (isContiguousFromA(Array.from(byKey.keys()))) {
+          found = { container: node, byKey };
+          break;
+        }
+        node = node.parentElement;
+      }
+
+      if (!found) return;
+      const bucket = groups.get(found.container) || new Map();
+      found.byKey.forEach((v, k) => {
+        if (!bucket.has(k)) bucket.set(k, v);
+      });
+      groups.set(found.container, bucket);
     });
 
     const questions = [];
 
-    groups.forEach((list, container) => {
-      if (list.length < (settings.minOptions || 2)) return;
+    groups.forEach((byKey, container) => {
+      const keys = Array.from(byKey.keys()).sort();
+      if (keys.length < minOptions) return;
+      if (!isContiguousFromA(keys)) return;
 
-      // Chỉ nhận nhóm có khoá liên tiếp bắt đầu từ A
-      const keys = list.map((o) => o.key).sort();
-      const unique = Array.from(new Set(keys));
-      if (unique.length < (settings.minOptions || 2)) return;
-      const start = 'A'.charCodeAt(0);
-      const contiguous = unique.every((k, i) => k.charCodeAt(0) === start + i);
-      if (!contiguous) return;
-
-      const sorted = list.slice().sort((a, b) => a.key.charCodeAt(0) - b.key.charCodeAt(0));
+      const sorted = keys.map((k) => byKey.get(k));
       const options = sorted.map((o) => ({
         key: o.key,
         label: o.text,
@@ -526,8 +648,84 @@
         question,
         options,
         source: 'keyed-text',
-        confidence: 0.75
+        confidence: 0.75,
+        scope: scope.scope
       });
+    });
+
+    return questions;
+  }
+
+  /* ============================================================
+   * CHIẾN LƯỢC D — ĐÁP ÁN ĐÃ ĐƯỢC TRANG WEB TIẾT LỘ
+   * ------------------------------------------------------------
+   * Nhiều trang hiển thị luôn đáp án đúng sau khi nộp bài, ví dụ:
+   *   "Đáp án: B"  |  "Correct answer: B"  |  "Answer: C. Hà Nội"
+   *   "✓ Đáp án đúng là B"
+   * Đây là nguồn đối chiếu chính xác tuyệt đối — ưu tiên cao nhất.
+   * ============================================================ */
+
+  const REVEAL_PATTERNS = [
+    /(?:đáp\s*án(?:\s*đúng)?(?:\s*là)?|câu\s*trả\s*lời(?:\s*đúng)?|kết\s*quả(?:\s*đúng)?|correct\s*answer(?:\s*is)?|the\s*answer\s*is|right\s*answer)\s*[:\-–—]?\s*\(?\s*([A-Ha-h])\s*\)?\b/i,
+    /^\s*([A-Ha-h])\s*[\.\)]\s*(?:✓|✔|√|đúng|đáp\s*án\s*đúng)/i,
+    /(?:✓|✔|√)\s*(?:đáp\s*án\s*đúng|đúng)\s*[:\-–—]?\s*\(?\s*([A-Ha-h])\s*\)?\b/i
+  ];
+
+  /** Tìm đáp án đã tiết lộ trong một vùng text. */
+  function findRevealedAnswer(text) {
+    if (!text) return null;
+    for (const re of REVEAL_PATTERNS) {
+      const m = re.exec(text);
+      if (m) {
+        const key = m[1].toUpperCase();
+        return { key, matched: m[0].trim().slice(0, 80) };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Gắn đáp án đã tiết lộ vào các câu hỏi tương ứng.
+   *
+   * Dò từ phần tử đáp án CUỐI CÙNG đi lên, **dừng ở phạm vi câu hỏi** (q.scope).
+   * Ranh giới này quan trọng: nếu leo quá xa, dấu hiệu "Đáp án: B" của câu cuối
+   * sẽ bị gán nhầm cho mọi câu hỏi nằm trong cùng container.
+   *
+   * @param {Array} questions  kết quả từ detect()
+   * @param {Element} root
+   */
+  function attachRevealedAnswers(questions, root) {
+    if (!questions || !questions.length) return questions;
+
+    questions.forEach((q) => {
+      if (!q.options || q.options.length < 2) return;
+
+      const lastOpt = q.options[q.options.length - 1];
+      let node = (lastOpt && lastOpt.element) || null;
+      if (!node) node = q.scope || null;
+      if (!node) return;
+
+      // Ranh giới: không leo ra ngoài phạm vi câu hỏi (nếu có)
+      const boundary = q.scope || null;
+
+      for (let i = 0; i < 6 && node && node !== root && node !== document.body; i++) {
+        const revealed = findRevealedAnswer(textOf(node));
+        if (revealed) {
+          const opt = q.options.find((o) => o.key === revealed.key);
+          if (opt) {
+            opt.revealed = true;
+            opt.revealedBy = revealed.matched;
+          }
+          return;
+        }
+
+        // Đã tới biên của câu hỏi mà vẫn không thấy dấu hiệu -> dừng
+        if (boundary && node === boundary) return;
+        // Sắp leo ra ngoài biên -> dừng
+        if (boundary && !boundary.contains(node.parentElement)) return;
+
+        node = node.parentElement;
+      }
     });
 
     return questions;
@@ -720,6 +918,11 @@
       questions = questions.slice(0, cfg.maxQuestions);
     }
 
+    // E. Gắn đáp án do trang web đã tiết lộ ("Đáp án: B", "Correct answer: C")
+    if (cfg.detectRevealed !== false) {
+      try { attachRevealedAnswers(questions, root); } catch (e) { /* bỏ qua */ }
+    }
+
     return {
       questions: questions.map((q, i) => ({
         id: 'q' + (i + 1),
@@ -731,6 +934,8 @@
           label: o.label || '',
           text: o.text,
           selected: !!o.selected,
+          revealed: !!o.revealed,
+          revealedBy: o.revealedBy || '',
           element: o.element || null
         }))
       }))
@@ -792,6 +997,8 @@
       if (el && state.manualRoots.indexOf(el) === -1) state.manualRoots.push(el);
     },
     parseKeyPrefix,
+    parseKeyOnly,
+    findRevealedAnswer,
     isVisible,
     normalize,
     truncate,
@@ -801,6 +1008,7 @@
     // Nội bộ, hữu ích khi chẩn đoán trên một website cụ thể
     resolveScope,
     findQuestionElement,
-    collectOptionLabel
+    collectOptionLabel,
+    collectKeyedCandidates
   };
 })(typeof window !== 'undefined' ? window : globalThis);

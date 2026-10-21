@@ -13,11 +13,14 @@ Chạy hoàn toàn cục bộ. Không backend, không telemetry, API key không 
 | Nhóm | Mô tả |
 |---|---|
 | **Phát hiện** | 4 chiến lược: `input[type=radio/checkbox]`, `role="radio"/"option"` (ARIA), mẫu chữ `A. B. C.`, và phân tích văn bản thuần |
+| **Nhiều kiểu trình bày** | Nhận dạng được đáp án dạng `<p>A. …</p>`, `<ol type="A"><li>`, `<div><span>A.</span>…`, ô `<td>`, và `<div class="opt"><b>A)</b>…` |
+| **Đáp án đã lộ** | Nếu trang hiển thị sẵn đáp án đúng (`Đáp án: B`, `Correct answer: C`) → đánh dấu **★ đáp án đúng** |
 | **Quét sâu** | Xuyên Shadow DOM (web component) — bật/tắt được |
+| **Iframe** | Câu hỏi trong iframe được tìm thấy và hiển thị lên panel của trang chính |
 | **Panel** | Shadow DOM riêng → không xung đột CSS với trang; ghim mép trái/phải; thu gọn 46px; chế độ chèn inline cạnh câu hỏi |
 | **Không che vùng đọc** | Đẩy nội dung trang sang một bên; tự thu gọn + làm mờ + `pointer-events:none` khi người dùng đang gõ |
 | **Cập nhật tự động** | `MutationObserver` + sự kiện `change`/`input`; debounce; cập nhật theo tab đang hoạt động |
-| **AI** | Gợi ý đáp án theo câu, chọn model từ danh sách API, chỉ hiện khi bấm nút |
+| **AI** | Gợi ý đáp án theo câu, chọn model từ danh sách API, tự thử model dự phòng khi model chính bị lỗi cấp quyền |
 | **Quét thủ công** | Bôi đen vùng câu hỏi rồi bấm nút → quét phần đó |
 
 ---
@@ -103,12 +106,14 @@ Ba lớp được tách riêng đúng như yêu cầu:
 node tools/test-detector.js     # 42 kiểm thử: phát hiện đáp án
 node tools/test-panel.js        # 39 kiểm thử: giao diện panel
 node tools/test-features.js     # 47 kiểm thử: AI, chế độ gõ, Shadow DOM, bảo mật key
+node tools/test-v2.js           # 61 kiểm thử: dạng đáp án mới, đáp án đã lộ, iframe, AI dự phòng
 
 # End-to-end (nạp extension thật vào Chromium)
 node tools/e2e-extension.js     # 23 kiểm thử: manifest, SW, content script, UI
 ```
 
 Cần `jsdom` và `playwright-core` (đã có sẵn trong workspace Node).
+Tổng: **189 unit test + 23 e2e**.
 
 ### Kiểm thử thủ công nhanh
 
@@ -131,11 +136,14 @@ Extension không nhúng sẵn API key. Bạn tự nhập ở *Cài đặt → Tr
    - Chỉ được đọc trong service worker rồi gửi thẳng tới API; **không bao giờ** được
      tiêm vào DOM của trang web.
 3. **Model** — bấm *Kiểm tra & tải model* để lấy danh sách, có ô tìm kiếm.
-4. **Gợi ý tự động** — mặc định **tắt**. Bật sẽ gọi API cho mỗi câu ngay khi phát hiện,
+4. **Model dự phòng** — mỗi dòng một model. Khi model chính bị lỗi cấp quyền
+   (`No active credentials`, `channel verification`), extension tự thử lần lượt các model này.
+5. **Gợi ý tự động** — mặc định **tắt**. Bật sẽ gọi API cho mỗi câu ngay khi phát hiện,
    tốn hạn mức hơn nhiều.
 
 > **Cảnh báo hạn mức**: một số gateway chặn request không đúng "kênh" chính thức
-> (lỗi `channel verification` / `request illegal`). Khi đó thử model khác trong danh sách.
+> (lỗi `channel verification` / `request illegal`). Lỗi này **không** phải do thiếu header —
+> nó nằm ở tầng upstream. Cách xử lý là đổi model, và extension đã tự làm việc này.
 
 ---
 

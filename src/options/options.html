@@ -130,6 +130,18 @@
         </span>
       </label>
 
+      <label class="row">
+        <input type="checkbox" id="detectRevealed">
+        <span class="row-main">
+          <span class="row-title">Phát hiện đáp án trang đã tiết lộ</span>
+          <span class="row-desc">
+            Nếu trang hiển thị sẵn đáp án đúng (kiểu “Đáp án: B”, “Correct answer: C”),
+            panel sẽ đánh dấu đáp án đó bằng nhãn <strong>★ đáp án đúng</strong> —
+            đây là nguồn đối chiếu chính xác nhất.
+          </span>
+        </span>
+      </label>
+
       <div class="row">
         <span class="row-main">
           <span class="row-title">Số đáp án tối thiểu</span>
@@ -219,6 +231,18 @@
           </span>
         </span>
       </label>
+
+      <div class="row">
+        <span class="row-main">
+          <span class="row-title">Model dự phòng</span>
+          <span class="row-desc">
+            Mỗi API key thường chỉ được cấp quyền cho một số model.
+            Nếu model đang chọn bị lỗi cấp quyền, extension thử lần lượt các model dưới đây.
+            Mỗi dòng một model.
+          </span>
+        </span>
+        <textarea id="aiFallbackModels" rows="4" spellcheck="false" class="fallback-box"></textarea>
+      </div>
     </section>
 
     <section class="card">

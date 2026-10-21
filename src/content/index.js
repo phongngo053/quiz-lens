@@ -107,7 +107,10 @@
     while (aiState.running < limit && aiState.queue.length) {
       const job = aiState.queue.shift();
       aiState.running++;
-      QH.ai.suggest(job.question, job.options, { model: state.settings.aiModel })
+      QH.ai.suggest(job.question, job.options, {
+        model: state.settings.aiModel,
+        fallbackModels: state.settings.aiFallbackModels
+      })
         .then((res) => {
           aiState.results[job.qid] = res;
           QH.panel.showAI(job.qid, res);
@@ -126,6 +129,72 @@
   function askAIForAll() {
     if (!state.settings.aiEnabled || !state.lastData) return;
     state.lastData.questions.forEach((q) => askAI(q.id));
+  }
+
+  /* ============================================================
+   * IFRAME — ĐIỀU PHỐI GIỮA CÁC FRAME
+   * ------------------------------------------------------------
+   * Nhiều trang đặt câu hỏi trong iframe (khung nhúng, trình xem đề).
+   * Chỉ frame chính (top) được vẽ panel; frame con gửi kết quả quét
+   * lên frame chính qua postMessage.
+   * ============================================================ */
+
+  const FRAME_FLAG = '__qh_frame_msg__';
+
+  function isTopFrame() {
+    try { return global.top === global.self; } catch (e) { return true; }
+  }
+
+  /** Frame con: gửi câu hỏi tìm được lên frame chính. */
+  function reportToTop(data) {
+    if (!data || !data.questions || !data.questions.length) return;
+    try {
+      const payload = {
+        [FRAME_FLAG]: true,
+        questions: data.questions.map((q) => ({
+          id: q.id,
+          question: q.question,
+          source: q.source,
+          confidence: q.confidence,
+          options: q.options.map((o) => ({
+            key: o.key, text: o.text, selected: o.selected, revealed: o.revealed
+          }))
+        }))
+      };
+      global.top.postMessage(payload, '*');
+    } catch (e) { /* cross-origin -> bỏ qua */ }
+  }
+
+  /** Frame chính: nhận câu hỏi từ frame con và gộp vào danh sách. */
+  function listenFromFrames() {
+    global.addEventListener('message', (e) => {
+      if (!e.data || !e.data[FRAME_FLAG]) return;
+      if (e.source === global) return;
+
+      const incoming = e.data.questions || [];
+      if (!incoming.length) return;
+
+      const base = state.lastData ? state.lastData.questions : [];
+      const sig = (q) => (q.question || '').toLowerCase().slice(0, 120);
+      const merged = base.slice();
+
+      incoming.forEach((q) => {
+        if (!merged.some((x) => sig(x) === sig(q))) {
+          // Bổ sung field `element` = null vì không thể truyền qua postMessage
+          merged.push(Object.assign({}, q, {
+            options: (q.options || []).map((o) => Object.assign({}, o, { element: null }))
+          }));
+        }
+      });
+
+      merged.forEach((q, i) => { q.id = 'q' + (i + 1); });
+      state.lastData = { questions: merged };
+
+      QH.panel.render(state.lastData, state.settings);
+      if (state.settings.mode === 'inline' || state.settings.mode === 'both') {
+        QH.inline.render(state.lastData.questions, state.settings);
+      }
+    });
   }
 
   /* ============================================================
@@ -160,6 +229,12 @@
     state.lastData = data;
 
     if (changed || force) {
+      // Frame con: gửi kết quả lên frame chính, không tự vẽ panel
+      if (!isTopFrame()) {
+        reportToTop(data);
+        return;
+      }
+
       QH.panel.render(data, state.settings);
 
       const mode = state.settings.mode;
@@ -325,9 +400,15 @@
     if (state.initialized) return;
     state.initialized = true;
 
-    QH.panel.create(state.settings);
-    QH.panel.applySettings(state.settings);
-    QH.panel.setPushContent(state.settings.pushContent, state.settings.side, state.settings.width);
+    // Chỉ frame chính mới vẽ panel; frame con chỉ quét rồi gửi lên
+    const top = isTopFrame();
+
+    if (top) {
+      QH.panel.create(state.settings);
+      QH.panel.applySettings(state.settings);
+      QH.panel.setPushContent(state.settings.pushContent, state.settings.side, state.settings.width);
+      listenFromFrames();
+    }
 
     scan({ force: true });
     startObserver();
@@ -421,8 +502,12 @@
     }
 
     setup();
-    QH.panel.applySettings(state.settings);
-    QH.panel.setPushContent(state.settings.pushContent, state.settings.side, state.settings.width);
+
+    // Frame con không có panel -> chỉ quét và gửi lên frame chính
+    if (isTopFrame()) {
+      QH.panel.applySettings(state.settings);
+      QH.panel.setPushContent(state.settings.pushContent, state.settings.side, state.settings.width);
+    }
 
     if (prev.mode !== state.settings.mode) {
       QH.inline.clear();

@@ -191,6 +191,12 @@ input[type="search"].wide {
   flex: 0 0 auto;
 }
 
+textarea.fallback-box {
+  width: 280px;
+  min-width: 220px;
+  flex: 0 0 auto;
+}
+
 #aiTestResult.ok { color: var(--ok); }
 #aiTestResult.err { color: #ff7b72; }
 

@@ -276,6 +276,27 @@
   white-space: nowrap;
 }
 
+/* Đáp án do trang web đã tiết lộ — độ tin cậy tuyệt đối */
+.opt-reveal {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  color: #fff;
+  background: var(--qh-accent);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.opt[data-revealed="true"] {
+  border-color: var(--qh-accent);
+  background: var(--qh-accent-soft);
+}
+.opt[data-revealed="true"] .opt-key {
+  background: var(--qh-accent);
+  border-color: var(--qh-accent);
+  color: #fff;
+}
+
 /* ---------- GỢI Ý AI ---------- */
 .ai-row {
   display: flex;

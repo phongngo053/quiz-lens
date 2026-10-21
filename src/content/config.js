@@ -28,6 +28,7 @@
     maxOptionLength: 600,
     maxQuestionLength: 1200,
     enableTextFallback: true, // nhận dạng theo mẫu "A. B. C." khi trang không có input
+    detectRevealed: true,   // nhận dạng đáp án trang đã tiết lộ ("Đáp án: B")
     blockedHosts: [],       // danh sách domain không chạy
     customProfiles: [],     // hồ sơ CSS do người dùng tự định nghĩa
 
@@ -36,6 +37,12 @@
     aiBaseUrl: '',          // Base URL API (người dùng tự nhập ở trang Cài đặt)
     aiApiKey: '',           // khoá API — KHÔNG lưu ở đây, lưu riêng trong storage.local
     aiModel: '',            // để trống = dùng model mặc định của server
+    aiFallbackModels: [     // thử lần lượt nếu model chính bị lỗi cấp quyền
+      'gemma4',
+      'ollama/gpt-oss:120b',
+      'gpt-5.6-luna',
+      'ollama/beam:cloud'
+    ],
     aiAuto: false,          // tự động gợi ý mỗi câu khi phát hiện
     aiConcurrency: 2,       // số request AI song song
 
