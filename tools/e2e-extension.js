@@ -13,6 +13,15 @@ const http = require('http');
 const os = require('os');
 const { spawn } = require('child_process');
 const { chromium } = require('playwright-core');
+const cleanup = require('./cleanup');
+
+// Don thu muc tam cua cac lan chay truoc
+const stale = cleanup.cleanupStale(2);
+if (stale.count) {
+  console.log('  Da don ' + stale.count + ' thu muc tam cu (' +
+    (stale.freed / 1024 / 1024).toFixed(1) + ' MB)');
+}
+cleanup.autoCleanup();
 
 const EXT = path.resolve(__dirname, '..');
 const CHROMIUM = 'C:\\Users\\ngoti\\AppData\\Local\\ms-playwright\\chromium-1134\\chrome-win\\chrome.exe';
@@ -60,7 +69,7 @@ async function capture(page, file) {
 (async () => {
   await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
-  const dir = path.join(os.tmpdir(), 'qh-e2e-real-' + Date.now());
+  const dir = cleanup.track(path.join(os.tmpdir(), 'qh-e2e-real-' + Date.now()));
   fs.mkdirSync(dir, { recursive: true });
 
   console.log('Khởi động Chromium với --load-extension...\n');
@@ -196,6 +205,9 @@ async function capture(page, file) {
     check('thu gọn còn ~46px', collapsed.w < 60, 'w=' + collapsed.w);
     check('data-collapsed=true', collapsed.attr === 'true', collapsed.attr);
 
+    const collapsedMargin = await page.evaluate(() => document.documentElement.style.marginRight);
+    check('nội dung trang được thu hồi còn 46px', collapsedMargin === '46px', collapsedMargin);
+
     await page.evaluate(() => document.getElementById('qh-panel-host').shadowRoot.querySelector('.js-toggle').click());
     // Chờ transition CSS ổn định (width về đúng giá trị cấu hình)
     await page.waitForFunction(() => {
@@ -207,6 +219,8 @@ async function capture(page, file) {
     const expandedState = await toggleState();
     console.log('    sau click 2:', JSON.stringify(expandedState));
     check('mở rộng lại 340px', Math.abs(expandedState.w - 340) < 2, 'w=' + expandedState.w);
+    const expandedMargin = await page.evaluate(() => document.documentElement.style.marginRight);
+    check('nội dung trang trở lại 340px', expandedMargin === '340px', expandedMargin);
 
     console.log('\n[6] Cập nhật tự động khi DOM thay đổi (SPA)');
     await page.click('#addRadio');

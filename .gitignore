@@ -37,3 +37,6 @@ desktop.ini
 
 # --- Khoá riêng của trình duyệt (phòng khi) ---
 *.local.json
+
+# Video demo (chi giu ban MP4 nhe)
+docs/*.webm

@@ -6,6 +6,19 @@ bằng AI.
 
 Chạy hoàn toàn cục bộ. Không backend, không telemetry, API key không nằm trong mã nguồn.
 
+## Demo
+
+![Demo Quiz Lens](docs/demo-quiz-lens.mp4)
+
+*Video quay tự động bằng `tools/record-demo.js` — nạp extension thật vào Chromium,
+thao tác thật trên trang, ghép từ CDP screencast.*
+
+| Ảnh | |
+|---|---|
+| ![Panel ghim bên](docs/screenshot-panel.png) | Panel ghim bên phải, nội dung trang được đẩy sang trái |
+| ![Chế độ inline](docs/screenshot-inline.png) | Chế độ inline — bảng đáp án chèn cạnh từng câu hỏi |
+| ![Trang cài đặt](docs/screenshot-options.png) | Trang cài đặt, gồm phần Trợ lý AI |
+
 ---
 
 ## 1. Tính năng

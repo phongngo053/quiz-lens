@@ -612,6 +612,10 @@
    * Nối các sự kiện từ panel
    * ------------------------------------------------------------ */
   QH.bus.on('panel:refresh', () => scan({ force: true }));
+  QH.bus.on('panel:collapsed', () => {
+    // Panel thu gọn chỉ chiếm 46px -> thu hồi khoảng đẩy nội dung trang
+    QH.panel.setPushContent(state.settings.pushContent, state.settings.side, state.settings.width);
+  });
   QH.bus.on('panel:hide', () => {
     QH.panel.setTypingMode(false);
     QH.panel.setCollapsed(true);

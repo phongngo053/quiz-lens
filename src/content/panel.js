@@ -220,9 +220,12 @@
   };
 
   Panel.setCollapsed = function (collapsed) {
+    const changed = Panel.collapsed !== !!collapsed;
     Panel.collapsed = !!collapsed;
     if (!Panel.refs.dock) return;
     Panel.refs.dock.setAttribute('data-collapsed', Panel.collapsed ? 'true' : 'false');
+    // Báo ra ngoài để điều chỉnh lại khoảng đẩy nội dung trang
+    if (changed && QH.bus) QH.bus.emit('panel:collapsed', Panel.collapsed);
   };
 
   /* ------------------------------------------------------------
@@ -389,17 +392,24 @@
 
   /* ------------------------------------------------------------
    * Đẩy nội dung trang sang bên để không che vùng đọc
+   * ------------------------------------------------------------
+   * Khi panel thu gọn (46px) thì chỉ cần dành 46px, không phải 340px.
+   * Nếu giữ 340px sẽ lãng phí gần 300px trống bên phải trang.
    * ------------------------------------------------------------ */
+  Panel.COLLAPSED_WIDTH = 46;
+
   Panel.setPushContent = function (enabled, side, width) {
     const doc = document.documentElement;
     const s = side === 'left' ? 'left' : 'right';
+    const effective = Panel.collapsed ? Panel.COLLAPSED_WIDTH : width;
+
     if (!enabled) {
       doc.style.setProperty('--qh-push-' + s, '0px');
       doc.style.removeProperty('margin-' + s);
       return;
     }
-    doc.style.setProperty('--qh-push-' + s, width + 'px');
-    doc.style.setProperty('margin-' + s, width + 'px');
+    doc.style.setProperty('--qh-push-' + s, effective + 'px');
+    doc.style.setProperty('margin-' + s, effective + 'px');
   };
 
   Panel.destroy = function () {

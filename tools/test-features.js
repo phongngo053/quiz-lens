@@ -116,9 +116,6 @@ console.log('\n[4] CSS chống chặn thao tác');
   check('panel có z-index cao', /\.dock\s*\{[^}]*z-index:\s*2147/.test(css), 'n/a');
 }
 
-/* ============================================================
- * TEST 5 — Quét xuyên Shadow DOM
- * ============================================================ */
 console.log('\n[5] Quét xuyên Shadow DOM');
 {
   const w = boot('<!DOCTYPE html><body><div id="host"></div></body>');
@@ -285,8 +282,33 @@ console.log('\n[11] Nút quét thủ công');
 }
 
 /* ============================================================
- * KẾT QUẢ
+ * TEST 12 — Panel thu gọn thì thu hồi khoảng đẩy nội dung trang
  * ============================================================ */
+console.log('\n[12] Panel thu gọn không lãng phí khoảng trống');
+{
+  const w = boot('<!DOCTYPE html><body></body>');
+  w.QH.panel.create(w.QH.config.defaults);
+  const doc = w.document.documentElement;
+
+  w.QH.panel.setPushContent(true, 'right', 340);
+  check('mở rộng -> margin 340px', doc.style.marginRight === '340px', doc.style.marginRight);
+
+  w.QH.panel.setCollapsed(true);
+  w.QH.panel.setPushContent(true, 'right', 340);
+  check('thu gọn -> margin chỉ 46px', doc.style.marginRight === '46px', doc.style.marginRight);
+
+  w.QH.panel.setCollapsed(false);
+  w.QH.panel.setPushContent(true, 'right', 340);
+  check('mở rộng lại -> margin 340px', doc.style.marginRight === '340px', doc.style.marginRight);
+
+  // Cột bên trái
+  w.QH.panel.setPushContent(true, 'left', 300);
+  check('side left -> margin-left 300px', doc.style.marginLeft === '300px', doc.style.marginLeft);
+  w.QH.panel.setCollapsed(true);
+  w.QH.panel.setPushContent(true, 'left', 300);
+  check('side left thu gọn -> margin-left 46px', doc.style.marginLeft === '46px', doc.style.marginLeft);
+}
+
 console.log('\n================================');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);
 if (fail) {
